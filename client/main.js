@@ -4,12 +4,46 @@ const fs = require('fs');
 const path = require('path');
 const port = 3000;
 
+app.use('/hls', express.static(HLS_DIR));
 
-app.get('api', (req, res) => {
-    const song_name = req.query.song_name;
-    const song_resolution = req.query.song_resolution;
-    const song_genre = req.query.genre;
+
+//with hls for online streaming 
+app.get('/:song_genre/:song_name', (req, res) => {
+    const song_name = req.params.song_name;
+    const song_genre = req.params.song_genre;
+    
+    const video_path = path.join(__dirname, `${song_genre}/${song_name}`)
+    app.use('/hls', express.static(HLS_DIR));
+    app.use('/hls', express.static(HLS_DIR));
+
+    ffmpeg(video_path)
+        .outputOptions([
+            '-profile:v baseline',
+            '-level 3.0',
+            '-s 640x360',
+            '-start_number 0',
+            '-hls_time 10',
+            '-hls_list_size 0',
+            '-f hls',
+        ])
+        .output(hlsPath)
+        .on('end', () => {
+            console.log('HLS streaming files generated.');
+            res.redirect(`/hls/output.m3u8`);
+        })
+
+})
+
+
+
+
+
+//for local version of app  
+app.get('localstreaming', (req, res) => {
+    const song_name = req.params.song_name;
+    const song_genre = req.params.genre;
     const range = req.query.range;
+    const song_resolution = req.query.song_resolution;
 
     const song_path =  `/downloads/${song_genre}/${song_name}/${song_resolution}`
     const video_size = fs.statSync(song_path).size;
