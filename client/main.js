@@ -4,17 +4,19 @@ const fs = require('fs');
 const path = require('path');
 const port = 3000;
 
+const HLS_DIR = path.join(__dirname, 'hls');
 app.use('/hls', express.static(HLS_DIR));
 
-
-//with hls for online streaming 
 app.get('/:song_genre/:song_name', (req, res) => {
     const song_name = req.params.song_name;
     const song_genre = req.params.song_genre;
     
-    const video_path = path.join(__dirname, `${song_genre}/${song_name}`)
-    app.use('/hls', express.static(HLS_DIR));
-    app.use('/hls', express.static(HLS_DIR));
+    const video_path = path.join(__dirname, `/assets/${song_genre}/${song_name}`)
+    const hlsPath = path.join(HLS_DIR, 'output.m3u8');
+
+    if (!fs.existsSync(video_path)) {
+        return res.status(404).send('Video not found');
+    }
 
     ffmpeg(video_path)
         .outputOptions([
@@ -31,10 +33,12 @@ app.get('/:song_genre/:song_name', (req, res) => {
             console.log('HLS streaming files generated.');
             res.redirect(`/hls/output.m3u8`);
         })
-
+        .on('error', (err) => {
+            console.error('Error:', err);
+            res.status(500).send('Error generating HLS stream');
+        })
+        .run();
 })
-
-
 
 
 
